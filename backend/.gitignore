@@ -1,0 +1,12 @@
+# Ne pas push les modules installés
+node_modules/
+
+# Ne pas push les variables d'environnement
+.env
+
+# Ne pas push les fichiers de logs
+*.log
+
+# Ne pas push les fichiers système inutiles
+.DS_Store
+Thumbs.db
