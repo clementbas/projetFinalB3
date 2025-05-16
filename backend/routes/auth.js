@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require("../middlewares/authMiddleware");
 
 // Register
 router.post('/register', async (req, res) => {
@@ -43,6 +44,10 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+  res.json({ message: "Bienvenue, utilisateur connecté", user: req.user });
 });
 
 module.exports = router;
