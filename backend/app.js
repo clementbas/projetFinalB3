@@ -11,6 +11,9 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const salonRoutes = require("./routes/salon");
+app.use("/api/salons", salonRoutes);
+
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
