@@ -17,6 +17,8 @@ app.use("/api/salons", salonRoutes);
 const userRoutes = require('./routes/admin');
 app.use('/api/users', userRoutes);
 
+const rendezVousRoutes = require("./routes/rendezvous");
+app.use("/api/rendezvous", rendezVousRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
