@@ -1,35 +1,78 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import mockSalons from './mockSalons';
-import { register, login } from './mockAuth';
+import api from './http';
 
-// Mock token pour simuler l'authentification
-let mockToken = null;
+// Gestion du token pour les requêtes sécurisées
+async function getToken() {
+  return await AsyncStorage.getItem('userToken');
+}
 
-// Services d'authentification mockés
+// Intercepte les erreurs pour récupérer le message utile
+function getErrorMessage(error) {
+  console.log('Erreur complète:', error);
+  
+  if (error.response && error.response.data && error.response.data.message) {
+    return error.response.data.message;
+  }
+  
+  if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+    return 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
+  }
+  
+  if (error.code === 'ECONNABORTED') {
+    return 'Timeout: Le serveur met trop de temps à répondre.';
+  }
+  
+  return error.message || 'Erreur inconnue';
+}
+
+// Service d'authentification
 export const authService = {
   login: async (email, password) => {
     try {
-      const result = await login(email, password);
-      mockToken = 'mocked-jwt-token'; // Simule un token
-      await AsyncStorage.setItem('userToken', mockToken);
-      await AsyncStorage.setItem('userData', JSON.stringify({ email }));
-      return { token: mockToken, user: { email } };
+      console.log('🔐 Tentative de connexion pour:', email);
+      
+      // Adapter les champs pour le backend
+      const response = await api.post('/auth/login', { 
+        email, 
+        motDePasse: password  // Changé: password -> motDePasse
+      });
+      
+      const { token, user } = response.data;
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      
+      console.log('✅ Connexion réussie');
+      return { token, user };
     } catch (error) {
-      throw error;
+      console.log('❌ Erreur de connexion:', error);
+      throw new Error(getErrorMessage(error));
     }
   },
 
   register: async (userData) => {
     try {
-      const result = await register(userData.email, userData.password);
-      return result;
+      console.log('📝 Tentative d\'inscription:', userData);
+      
+      // Adapter les champs pour le backend
+      const backendData = {
+        nom: `${userData.firstName} ${userData.lastName}`, // Combiner prénom + nom
+        email: userData.email,
+        motDePasse: userData.password  // Changé: password -> motDePasse
+      };
+      
+      console.log('📤 Données envoyées au backend:', backendData);
+      
+      const response = await api.post('/auth/register', backendData);
+      
+      console.log('✅ Inscription réussie');
+      return response.data;
     } catch (error) {
-      throw error;
+      console.log('❌ Erreur d\'inscription:', error);
+      throw new Error(getErrorMessage(error));
     }
   },
 
   logout: async () => {
-    mockToken = null;
     await AsyncStorage.removeItem('userToken');
     await AsyncStorage.removeItem('userData');
   },
@@ -40,44 +83,78 @@ export const authService = {
   },
 };
 
-// Services pour les salons mockés
+// Service pour gérer les salons (routes protégées, token nécessaire)
 export const salonService = {
   getAllSalons: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockSalons), 300);
-    });
+    try {
+      const token = await getToken();
+      const response = await api.get('/salons', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
   },
 
   getSalonById: async (id) => {
-    return new Promise((resolve, reject) => {
-      const salon = mockSalons.find(s => s.id === id);
-      if (salon) {
-        setTimeout(() => resolve(salon), 200);
-      } else {
-        reject(new Error('Salon non trouvé'));
-      }
-    });
+    try {
+      const token = await getToken();
+      const response = await api.get(`/salons/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
   },
 
-  searchSalonsByLocation: async (latitude, longitude, radius = 5) => {
-    // Pour mocker, on retourne tous, ignore les coords
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockSalons), 300);
-    });
+  createSalon: async (salonData) => {
+    try {
+      const token = await getToken();
+      const response = await api.post('/salons', salonData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
   },
 
-  searchSalonsByPrice: async (minPrice, maxPrice) => {
-    return new Promise((resolve) => {
-      const filtered = mockSalons.filter(s => s.priceLevel >= minPrice && s.priceLevel <= maxPrice);
-      setTimeout(() => resolve(filtered), 300);
-    });
+  updateSalon: async (id, salonData) => {
+    try {
+      const token = await getToken();
+      const response = await api.put(`/salons/${id}`, salonData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
   },
 
-  searchSalonsByRating: async (minRating) => {
-    return new Promise((resolve) => {
-      const filtered = mockSalons.filter(s => s.rating >= minRating);
-      setTimeout(() => resolve(filtered), 300);
-    });
+  deleteSalon: async (id) => {
+    try {
+      const token = await getToken();
+      const response = await api.delete(`/salons/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  addComment: async (salonId, note, commentaire) => {
+    try {
+      const token = await getToken();
+      const response = await api.post(`/salons/${salonId}/commentaire`, { note, commentaire }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
   },
 };
 

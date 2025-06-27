@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { salonService } from '../services/api';
+import salonService from '../services/salonService'; // correction import salonService par défaut
 import SalonCard from '../components/SalonCard';
 import Header from '../components/Header';
 
@@ -24,60 +24,6 @@ const HomeScreen = ({ navigation }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mock data pour le développement
-  const mockSalons = [
-    {
-      id: '1',
-      name: 'Coiffure Élégance',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.5,
-      numReviews: 120,
-      address: '23 Avenue des Fleurs, Lyon',
-      minPrice: 25,
-      distance: 0.8,
-    },
-    {
-      id: '2',
-      name: 'Studio Coupe',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.2,
-      numReviews: 85,
-      address: '45 Rue de la République, Lyon',
-      minPrice: 30,
-      distance: 1.2,
-    },
-    {
-      id: '3',
-      name: 'Hair Fashion',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.8,
-      numReviews: 210,
-      address: '12 Place Bellecour, Lyon',
-      minPrice: 35,
-      distance: 1.5,
-    },
-    {
-      id: '4',
-      name: 'Coiffure Express',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 3.9,
-      numReviews: 56,
-      address: '78 Rue Garibaldi, Lyon',
-      minPrice: 18,
-      distance: 2.3,
-    },
-    {
-      id: '5',
-      name: 'Le Salon Parfait',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.6,
-      numReviews: 175,
-      address: '34 Avenue Jean Jaurès, Lyon',
-      minPrice: 40,
-      distance: 3.0,
-    },
-  ];
-
   useEffect(() => {
     fetchSalons();
   }, []);
@@ -85,19 +31,26 @@ const HomeScreen = ({ navigation }) => {
   const fetchSalons = async () => {
     setIsLoading(true);
     try {
-      // Dans un environnement réel, remplacer par l'appel API
-      // const response = await salonService.getAllSalons();
-      // setSalons(response);
-      // setFilteredSalons(response);
-      
-      // Utilisation de mock data pour le développement
-      setTimeout(() => {
-        setSalons(mockSalons);
-        setFilteredSalons(mockSalons);
-        setIsLoading(false);
-      }, 1000);
+      const response = await salonService.getAllSalons();
+
+      // sécuriser les données reçues, valeurs par défaut
+      const safeSalons = response.map((salon, index) => ({
+        id: salon.id || salon._id || `salon-${index}`,
+        name: salon.name || salon.nom || 'Salon sans nom',
+        address: salon.address || salon.adresse || 'Adresse non disponible',
+        rating: salon.rating || salon.note || 0,
+        numReviews: salon.numReviews || salon.nombreAvis || 0,
+        minPrice: salon.minPrice || salon.prixMin || 0,
+        distance: salon.distance || null,
+        imageUrl: salon.imageUrl || salon.image || null,
+        ...salon,
+      }));
+
+      setSalons(safeSalons);
+      setFilteredSalons(safeSalons);
     } catch (error) {
       console.error('Erreur lors de la récupération des salons:', error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -110,46 +63,53 @@ const HomeScreen = ({ navigation }) => {
 
   const handleSearch = (text) => {
     setSearchQuery(text);
-    
+
     if (text.trim() === '') {
       filterSalons(activeFilter);
       return;
     }
-    
-    const filtered = salons.filter((salon) => 
-      salon.name.toLowerCase().includes(text.toLowerCase()) ||
-      salon.address.toLowerCase().includes(text.toLowerCase())
-    );
-    
+
+    const filtered = salons.filter((salon) => {
+      const name = salon.name || '';
+      const address = salon.address || '';
+      return (
+        name.toLowerCase().includes(text.toLowerCase()) ||
+        address.toLowerCase().includes(text.toLowerCase())
+      );
+    });
+
     setFilteredSalons(filtered);
   };
 
   const filterSalons = (filter) => {
     setActiveFilter(filter);
     let filtered = [...salons];
-    
+
     switch (filter) {
       case 'nearest':
-        filtered.sort((a, b) => a.distance - b.distance);
+        filtered.sort((a, b) => (a.distance || 999) - (b.distance || 999));
         break;
       case 'cheapest':
-        filtered.sort((a, b) => a.minPrice - b.minPrice);
+        filtered.sort((a, b) => (a.minPrice || 0) - (b.minPrice || 0));
         break;
       case 'best_rated':
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       default:
-        // "all" - pas de tri spécifique
         break;
     }
-    
+
     if (searchQuery.trim() !== '') {
-      filtered = filtered.filter((salon) => 
-        salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.address.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter((salon) => {
+        const name = salon.name || '';
+        const address = salon.address || '';
+        return (
+          name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          address.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
     }
-    
+
     setFilteredSalons(filtered);
   };
 
@@ -180,7 +140,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <Header title="HairStyle Finder" />
-      
+
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -191,7 +151,7 @@ const HomeScreen = ({ navigation }) => {
             onChangeText={handleSearch}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.clearButton}
               onPress={() => handleSearch('')}
             >
@@ -200,7 +160,7 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       <View style={styles.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {renderFilterButton('Tous', 'all', 'grid')}
@@ -209,7 +169,7 @@ const HomeScreen = ({ navigation }) => {
           {renderFilterButton('Mieux noté', 'best_rated', 'star')}
         </ScrollView>
       </View>
-      
+
       {isLoading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
@@ -225,8 +185,10 @@ const HomeScreen = ({ navigation }) => {
       ) : (
         <FlatList
           data={filteredSalons}
-          renderItem={({ item }) => <SalonCard salon={item} />}
-          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => <SalonCard salon={item} navigation={navigation} />}
+          keyExtractor={(item, index) =>
+            item.id ? item.id.toString() : `salon-${index}`
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
           refreshControl={
@@ -239,14 +201,8 @@ const HomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
-  searchContainer: {
-    padding: 15,
-    backgroundColor: '#FFF',
-  },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
+  searchContainer: { padding: 15, backgroundColor: '#FFF' },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,21 +210,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  filtersContainer: {
-    marginVertical: 10,
-    paddingHorizontal: 15,
-  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, height: 40, fontSize: 16 },
+  clearButton: { padding: 5 },
+  filtersContainer: { marginVertical: 10, paddingHorizontal: 15 },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,40 +229,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B6B',
     borderColor: '#FF6B6B',
   },
-  filterButtonText: {
-    marginLeft: 5,
-    color: '#666',
-    fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: '#FFF',
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  filterButtonText: { marginLeft: 5, color: '#666', fontSize: 14 },
+  filterButtonTextActive: { color: '#FFF' },
+  listContainer: { paddingBottom: 20 },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
-  },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 20 },
+  emptySubtext: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 10 },
 });
 
 export default HomeScreen;

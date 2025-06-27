@@ -34,23 +34,36 @@ const MapScreen = () => {
     <MapView
       style={styles.map}
       initialRegion={{
-        latitude: salons.length > 0 ? salons[0].location.latitude : 48.8566, // Paris par défaut
-        longitude: salons.length > 0 ? salons[0].location.longitude : 2.3522,
+        latitude:
+          salons.length > 0 && salons[0].location
+            ? salons[0].location.latitude
+            : 48.8566, // Paris par défaut
+        longitude:
+          salons.length > 0 && salons[0].location
+            ? salons[0].location.longitude
+            : 2.3522,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       }}
     >
-      {salons.map((salon) => (
-        <Marker
-          key={salon.id}
-          coordinate={{
-            latitude: salon.location.latitude,
-            longitude: salon.location.longitude,
-          }}
-          title={salon.name}
-          description={salon.address}
-        />
-      ))}
+      {salons
+        .filter(
+          (salon) =>
+            salon.location &&
+            salon.location.latitude &&
+            salon.location.longitude
+        )
+        .map((salon) => (
+          <Marker
+            key={salon.id}
+            coordinate={{
+              latitude: salon.location.latitude,
+              longitude: salon.location.longitude,
+            }}
+            title={salon.name}
+            description={salon.address}
+          />
+        ))}
     </MapView>
   );
 };

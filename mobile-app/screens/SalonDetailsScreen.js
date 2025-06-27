@@ -25,7 +25,7 @@ const SalonDetails = ({ route }) => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color="#FF6B6B" />
       </View>
     );
   }
@@ -40,46 +40,50 @@ const SalonDetails = ({ route }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {salon.image && (
-        <Image source={{ uri: salon.image }} style={styles.image} />
+      {(salon.imageUrl || salon.image) && (
+        <Image
+          source={{ uri: salon.imageUrl || salon.image }}
+          style={styles.image}
+        />
       )}
-      <Text style={styles.name}>{salon.name}</Text>
-      <Text style={styles.address}>{salon.address}</Text>
-      <Text style={styles.description}>{salon.description}</Text>
-      {/* Tu peux ajouter d'autres infos ici (horaires, tarifs, etc.) */}
+      <Text style={styles.name}>{salon.name || salon.nom}</Text>
+      <Text style={styles.address}>{salon.address || salon.adresse}</Text>
+      <Text style={styles.info}>Note: {salon.rating || salon.note} / 5</Text>
+      <Text style={styles.info}>Nombre d'avis: {salon.numReviews || salon.nombreAvis}</Text>
+      <Text style={styles.info}>Prix minimum: {salon.minPrice || salon.prixMin} €</Text>
+      {/* Ajouter d'autres informations selon les données disponibles */}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  address: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    color: '#333',
+    padding: 20,
+    backgroundColor: '#FFF',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  address: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  info: {
+    fontSize: 14,
+    marginBottom: 5,
   },
 });
 

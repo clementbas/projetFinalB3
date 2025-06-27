@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,12 +5,25 @@ import { useNavigation } from '@react-navigation/native';
 
 const SalonCard = ({ salon }) => {
   const navigation = useNavigation();
-  
+
+  // 🔥 Valeurs par défaut sécurisées
+  const salonData = {
+    id: salon?.id || salon?._id || 'unknown',
+    name: salon?.name || salon?.nom || 'Salon sans nom',
+    rating: salon?.rating || salon?.note || 0,
+    numReviews: salon?.numReviews || salon?.nombreAvis || 0,
+    address: salon?.address || salon?.adresse || 'Adresse non disponible',
+    minPrice: salon?.minPrice || salon?.prixMin || 0,
+    distance: salon?.distance || null,
+    imageUrl: salon?.imageUrl || salon?.image || null,
+  };
+
   const renderStars = (rating) => {
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    
+    const safeRating = Math.max(0, Math.min(5, rating || 0)); // Entre 0 et 5
+    const fullStars = Math.floor(safeRating);
+    const hasHalfStar = safeRating % 1 >= 0.5;
+
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
         stars.push(<Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" />);
@@ -21,43 +33,46 @@ const SalonCard = ({ salon }) => {
         stars.push(<Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" />);
       }
     }
-    
     return stars;
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('SalonDetails', { salonId: salon.id })}
+      onPress={() => navigation.navigate('SalonDetails', { salonId: salonData.id })}
     >
-      <Image 
-        source={{ uri: salon.imageUrl || 'https://via.placeholder.com/150' }} 
-        style={styles.image} 
+      <Image
+        source={{ 
+          uri: salonData.imageUrl || 'https://via.placeholder.com/150x120/FF6B6B/FFFFFF?text=Salon' 
+        }}
+        style={styles.image}
       />
       <View style={styles.infoContainer}>
-        <Text style={styles.name}>{salon.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{salonData.name}</Text>
         
         <View style={styles.ratingContainer}>
-          <View style={styles.stars}>{renderStars(salon.rating)}</View>
-          <Text style={styles.ratingText}>({salon.numReviews})</Text>
+          <View style={styles.stars}>{renderStars(salonData.rating)}</View>
+          <Text style={styles.ratingText}>
+            ({salonData.numReviews > 0 ? salonData.numReviews : 'Nouveau'})
+          </Text>
         </View>
         
         <View style={styles.locationContainer}>
           <Ionicons name="location" size={16} color="#666" />
           <Text style={styles.locationText} numberOfLines={1}>
-            {salon.address}
+            {salonData.address}
           </Text>
         </View>
         
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>À partir de </Text>
-          <Text style={styles.price}>{salon.minPrice}€</Text>
+          <Text style={styles.price}>{salonData.minPrice}€</Text>
         </View>
         
-        {salon.distance && (
+        {salonData.distance && (
           <View style={styles.distanceContainer}>
             <Ionicons name="navigate" size={14} color="#666" />
-            <Text style={styles.distanceText}>{salon.distance} km</Text>
+            <Text style={styles.distanceText}>{salonData.distance} km</Text>
           </View>
         )}
       </View>
