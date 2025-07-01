@@ -1,11 +1,15 @@
 # projetFinalB3
 
 
+
 ## API (backend)
 
 ```bash
+cd backend
 npm install express cors dotenv mongoose bcrypt jsonwebtoken
 npm install --save-dev nodemon
+créer le fichier .env à la racine du dossier
+node server.js
 ```
 
 ## dashboard (front-office)
