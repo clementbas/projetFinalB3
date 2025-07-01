@@ -98,9 +98,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
       description,
       categorie,
       prixMinimum,
-      horaires
+      horaires,
+      owner
     } = req.body;
 
+    // ✅ Mise à jour des champs classiques
     if (name !== undefined) salon.name = name;
     if (address !== undefined) salon.address = address;
     if (ville !== undefined) salon.ville = ville;
@@ -108,6 +110,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (categorie !== undefined) salon.categorie = categorie;
     if (prixMinimum !== undefined) salon.prixMinimum = prixMinimum;
     if (horaires !== undefined) salon.horaires = horaires;
+
+    // ✅ Si admin et owner fourni : vérifie qu'il existe et est coiffeur
+    if (owner && isAdmin) {
+      const { email } = owner;
+
+      if (!email) {
+        return res.status(400).json({ message: "L'email du propriétaire est requis." });
+      }
+
+      const ownerUser = await User.findOne({ email });
+
+      if (!ownerUser) {
+        return res.status(404).json({ message: "Utilisateur owner non trouvé." });
+      }
+
+      if (ownerUser.role !== 'coiffeur') {
+        return res.status(400).json({ message: "Le propriétaire doit être un utilisateur avec le rôle 'coiffeur'." });
+      }
+
+      salon.owner = ownerUser._id;
+    }
 
     await salon.save();
     res.status(200).json({ message: 'Salon mis à jour avec succès', salon });
