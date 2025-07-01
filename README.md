@@ -1,5 +1,11 @@
 # projetFinalB3
 
+
+# backend
+
+npm install express cors dotenv mongoose bcrypt jsonwebtoken
+npm install --save-dev nodemon
+
 #devMobile
 npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs
 npm install react-native-screens react-native-safe-area-context    
