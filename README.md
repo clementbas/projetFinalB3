@@ -1,11 +1,14 @@
 # projetFinalB3
 
+
 # backend
 
 npm install express cors dotenv mongoose bcrypt jsonwebtoken
 npm install --save-dev nodemon
 
-## MongoDB 
+#devMobile
+npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs
+npm install react-native-screens react-native-safe-area-context    
+npm install react-native-maps axios @react-native-async-storage/async-storage 
 
-username : admin
-mdp : Bjmcejsnl25NOV2002!
+npm install expo
