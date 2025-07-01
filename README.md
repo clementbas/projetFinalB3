@@ -1,14 +1,14 @@
 # projetFinalB3
 
 
-## backend (API)
+## API (backend)
 
 ```bash
 npm install express cors dotenv mongoose bcrypt jsonwebtoken
 npm install --save-dev nodemon
 ```
 
-## dashboard
+## dashboard (front-office)
 
 ```bash
 cd coiffeur-dashboard
@@ -18,7 +18,7 @@ npm run dev
 ```
 
 
-## devMobile
+## devMobile (application)
 
 ```bash
 npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs
