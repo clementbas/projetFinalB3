@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { salonService } from '../services/api';
+import salonService from '../services/salonService';
 import SalonCard from '../components/SalonCard';
 import Header from '../components/Header';
 
@@ -22,61 +22,8 @@ const HomeScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
-
-  // Mock data pour le développement
-  const mockSalons = [
-    {
-      id: '1',
-      name: 'Coiffure Élégance',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.5,
-      numReviews: 120,
-      address: '23 Avenue des Fleurs, Lyon',
-      minPrice: 25,
-      distance: 0.8,
-    },
-    {
-      id: '2',
-      name: 'Studio Coupe',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.2,
-      numReviews: 85,
-      address: '45 Rue de la République, Lyon',
-      minPrice: 30,
-      distance: 1.2,
-    },
-    {
-      id: '3',
-      name: 'Hair Fashion',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.8,
-      numReviews: 210,
-      address: '12 Place Bellecour, Lyon',
-      minPrice: 35,
-      distance: 1.5,
-    },
-    {
-      id: '4',
-      name: 'Coiffure Express',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 3.9,
-      numReviews: 56,
-      address: '78 Rue Garibaldi, Lyon',
-      minPrice: 18,
-      distance: 2.3,
-    },
-    {
-      id: '5',
-      name: 'Le Salon Parfait',
-      imageUrl: 'https://via.placeholder.com/150',
-      rating: 4.6,
-      numReviews: 175,
-      address: '34 Avenue Jean Jaurès, Lyon',
-      minPrice: 40,
-      distance: 3.0,
-    },
-  ];
 
   useEffect(() => {
     fetchSalons();
@@ -85,19 +32,42 @@ const HomeScreen = ({ navigation }) => {
   const fetchSalons = async () => {
     setIsLoading(true);
     try {
-      // Dans un environnement réel, remplacer par l'appel API
-      // const response = await salonService.getAllSalons();
-      // setSalons(response);
-      // setFilteredSalons(response);
-      
-      // Utilisation de mock data pour le développement
-      setTimeout(() => {
-        setSalons(mockSalons);
-        setFilteredSalons(mockSalons);
-        setIsLoading(false);
-      }, 1000);
+      const response = await salonService.getAllSalons();
+
+      // Traitement des données selon le modèle MongoDB
+      const processedSalons = response.map((salon, index) => {
+        // Calculer la note moyenne
+        const avgRating = salon.commentaires && salon.commentaires.length > 0
+          ? salon.commentaires.reduce((sum, comment) => sum + comment.note, 0) / salon.commentaires.length
+          : 0;
+
+        return {
+          _id: salon._id || `salon-${index}`,
+          name: salon.name || 'Salon sans nom',
+          address: salon.address || 'Adresse non disponible',
+          ville: salon.ville || '',
+          categorie: salon.categorie || 'mixte',
+          description: salon.description || '',
+          prixMinimum: salon.prixMinimum || 0,
+          horaires: salon.horaires || [],
+          commentaires: salon.commentaires || [],
+          owner: salon.owner || null,
+          createdAt: salon.createdAt || null,
+          updatedAt: salon.updatedAt || null,
+          // Données calculées
+          rating: avgRating,
+          numReviews: salon.commentaires ? salon.commentaires.length : 0,
+          // Distance fictive (à remplacer par calcul réel)
+          distance: Math.random() * 10 + 1, // 1-11 km
+          ...salon,
+        };
+      });
+
+      setSalons(processedSalons);
+      setFilteredSalons(processedSalons);
     } catch (error) {
       console.error('Erreur lors de la récupération des salons:', error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -110,46 +80,65 @@ const HomeScreen = ({ navigation }) => {
 
   const handleSearch = (text) => {
     setSearchQuery(text);
-    
-    if (text.trim() === '') {
-      filterSalons(activeFilter);
-      return;
-    }
-    
-    const filtered = salons.filter((salon) => 
-      salon.name.toLowerCase().includes(text.toLowerCase()) ||
-      salon.address.toLowerCase().includes(text.toLowerCase())
-    );
-    
-    setFilteredSalons(filtered);
+    applyFilters(text, activeFilter, activeCategory);
   };
 
   const filterSalons = (filter) => {
     setActiveFilter(filter);
+    applyFilters(searchQuery, filter, activeCategory);
+  };
+
+  const filterByCategory = (category) => {
+    setActiveCategory(category);
+    applyFilters(searchQuery, activeFilter, category);
+  };
+
+  const applyFilters = (searchText, sortFilter, categoryFilter) => {
     let filtered = [...salons];
-    
-    switch (filter) {
+
+    // Filtrage par catégorie
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(salon => salon.categorie === categoryFilter);
+    }
+
+    // Filtrage par recherche
+    if (searchText.trim() !== '') {
+      filtered = filtered.filter((salon) => {
+        const name = salon.name || '';
+        const address = salon.address || '';
+        const ville = salon.ville || '';
+        const description = salon.description || '';
+        
+        const searchLower = searchText.toLowerCase();
+        return (
+          name.toLowerCase().includes(searchLower) ||
+          address.toLowerCase().includes(searchLower) ||
+          ville.toLowerCase().includes(searchLower) ||
+          description.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Tri selon le filtre actif
+    switch (sortFilter) {
       case 'nearest':
-        filtered.sort((a, b) => a.distance - b.distance);
+        filtered.sort((a, b) => (a.distance || 999) - (b.distance || 999));
         break;
       case 'cheapest':
-        filtered.sort((a, b) => a.minPrice - b.minPrice);
+        filtered.sort((a, b) => (a.prixMinimum || 0) - (b.prixMinimum || 0));
         break;
       case 'best_rated':
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'most_reviewed':
+        filtered.sort((a, b) => (b.numReviews || 0) - (a.numReviews || 0));
         break;
       default:
-        // "all" - pas de tri spécifique
+        // Tri par défaut : les plus récents
+        filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         break;
     }
-    
-    if (searchQuery.trim() !== '') {
-      filtered = filtered.filter((salon) => 
-        salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.address.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
+
     setFilteredSalons(filtered);
   };
 
@@ -177,10 +166,34 @@ const HomeScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  const renderCategoryButton = (title, value, icon, color) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryButton,
+        activeCategory === value && { backgroundColor: color, borderColor: color },
+      ]}
+      onPress={() => filterByCategory(value)}
+    >
+      <Ionicons
+        name={icon}
+        size={16}
+        color={activeCategory === value ? '#FFF' : color}
+      />
+      <Text
+        style={[
+          styles.categoryButtonText,
+          activeCategory === value && styles.categoryButtonTextActive,
+        ]}
+      >
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <Header title="HairStyle Finder" />
-      
+
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -191,7 +204,7 @@ const HomeScreen = ({ navigation }) => {
             onChangeText={handleSearch}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.clearButton}
               onPress={() => handleSearch('')}
             >
@@ -200,19 +213,39 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
+      {/* Filtres par catégorie */}
+      <View style={styles.categoriesContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {renderCategoryButton('Tous', 'all', 'grid', '#FF6B6B')}
+          {renderCategoryButton('Homme', 'homme', 'man', '#4A90E2')}
+          {renderCategoryButton('Femme', 'femme', 'woman', '#E24A90')}
+          {renderCategoryButton('Mixte', 'mixte', 'people', '#FF6B6B')}
+        </ScrollView>
+      </View>
+
+      {/* Filtres de tri */}
       <View style={styles.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {renderFilterButton('Tous', 'all', 'grid')}
+          {renderFilterButton('Récents', 'all', 'time')}
           {renderFilterButton('Plus proche', 'nearest', 'location')}
           {renderFilterButton('Moins cher', 'cheapest', 'cash')}
           {renderFilterButton('Mieux noté', 'best_rated', 'star')}
+          {renderFilterButton('Plus d\'avis', 'most_reviewed', 'chatbubbles')}
         </ScrollView>
       </View>
-      
+
+      {/* Résultats */}
+      <View style={styles.resultsHeader}>
+        <Text style={styles.resultsText}>
+          {filteredSalons.length} salon{filteredSalons.length > 1 ? 's' : ''} trouvé{filteredSalons.length > 1 ? 's' : ''}
+        </Text>
+      </View>
+
       {isLoading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
+          <Text style={styles.loadingText}>Chargement des salons...</Text>
         </View>
       ) : filteredSalons.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -226,7 +259,9 @@ const HomeScreen = ({ navigation }) => {
         <FlatList
           data={filteredSalons}
           renderItem={({ item }) => <SalonCard salon={item} />}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) =>
+            item._id ? item._id.toString() : `salon-${index}`
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
           refreshControl={
@@ -239,14 +274,8 @@ const HomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
-  searchContainer: {
-    padding: 15,
-    backgroundColor: '#FFF',
-  },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
+  searchContainer: { padding: 15, backgroundColor: '#FFF' },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,21 +283,31 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  filtersContainer: {
-    marginVertical: 10,
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, height: 40, fontSize: 16 },
+  clearButton: { padding: 5 },
+  
+  categoriesContainer: { 
+    marginVertical: 10, 
     paddingHorizontal: 15,
+    backgroundColor: '#FFF',
+    paddingVertical: 10,
   },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  categoryButtonText: { marginLeft: 5, color: '#666', fontSize: 14, fontWeight: '600' },
+  categoryButtonTextActive: { color: '#FFF' },
+  
+  filtersContainer: { marginBottom: 10, paddingHorizontal: 15 },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,21 +323,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B6B',
     borderColor: '#FF6B6B',
   },
-  filterButtonText: {
-    marginLeft: 5,
-    color: '#666',
+  filterButtonText: { marginLeft: 5, color: '#666', fontSize: 14 },
+  filterButtonTextActive: { color: '#FFF' },
+  
+  resultsHeader: {
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+  },
+  resultsText: {
     fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
-  filterButtonTextActive: {
-    color: '#FFF',
+  
+  listContainer: { paddingBottom: 20 },
+  loaderContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   emptyContainer: {
     flex: 1,
@@ -306,17 +353,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
+  emptyText: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginTop: 20 
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
+  emptySubtext: { 
+    fontSize: 14, 
+    color: '#666', 
+    textAlign: 'center', 
+    marginTop: 10 
   },
 });
 

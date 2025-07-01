@@ -24,33 +24,6 @@ const ProfileScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const mockAppointments = [
-    {
-      id: '1',
-      salonName: 'Coiffure Élégance',
-      date: '2025-06-30T10:00:00',
-      status: 'upcoming',
-    },
-    {
-      id: '2',
-      salonName: 'Studio Coupe',
-      date: '2025-06-15T14:30:00',
-      status: 'past',
-    },
-    {
-      id: '3',
-      salonName: 'Hair Fashion',
-      date: '2025-07-02T09:00:00',
-      status: 'upcoming',
-    },
-    {
-      id: '4',
-      salonName: 'Coiffure Express',
-      date: '2025-06-10T16:00:00',
-      status: 'past',
-    },
-  ];
-
   useEffect(() => {
     loadAppointments();
   }, []);
@@ -58,24 +31,22 @@ const ProfileScreen = ({ navigation }) => {
   const loadAppointments = () => {
     setIsLoading(true);
 
-    setTimeout(() => {
-      const now = new Date();
-      const upcoming = mockAppointments.filter(
-        (appt) => new Date(appt.date) >= now
-      );
-      const past = mockAppointments.filter(
-        (appt) => new Date(appt.date) < now
-      );
+    // Ici, tu peux appeler ton API ou charger les données réelles
 
-      setUpcomingAppointments(upcoming);
-      setPastAppointments(past);
+    // Exemple : on simule juste un chargement vide
+    setTimeout(() => {
+      setUpcomingAppointments([]);
+      setPastAppointments([]);
       setIsLoading(false);
     }, 1000);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    loadAppointments();
+    await new Promise((resolve) => {
+      loadAppointments();
+      resolve();
+    });
     setRefreshing(false);
   };
 
