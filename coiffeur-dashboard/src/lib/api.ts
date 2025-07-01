@@ -1,0 +1,193 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
+// Types corrigés selon votre API
+export interface Salon {
+  _id: string
+  name: string
+  address: string
+  ville: string
+  categorie: 'homme' | 'femme' | 'mixte'
+  description: string
+  horaires: Array<{
+    jour: string
+    ouverture: string
+    fermeture: string
+    _id: string
+  }>
+  prixMinimum: number
+  owner: {
+    _id: string
+    email: string
+    role: string
+  }
+  commentaires: Array<{
+    utilisateur: string
+    note: number
+    commentaire: string
+    _id: string
+    date: string
+  }>
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+export interface User {
+  _id: string
+  nom: string
+  prenom: string
+  email: string
+  role: string
+  __v: number
+}
+
+export interface RendezVous {
+  _id: string
+  salon: {
+    _id: string
+    name: string
+    ville: string
+    adress: string // Note: votre API a "adress" pas "address"
+  }
+  client: {
+    _id: string
+    nom: string
+    prenom: string
+    email: string
+  }
+  date: string
+  statut: 'en attente' | 'confirmé' | 'annulé'
+  commentaire: string
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+export interface AuthResponse {
+  token: string
+  user: User
+}
+
+// Gestion du token
+class TokenManager {
+  private static TOKEN_KEY = 'auth_token'
+
+  static getToken(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(this.TOKEN_KEY)
+  }
+
+  static setToken(token: string): void {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(this.TOKEN_KEY, token)
+  }
+
+  static removeToken(): void {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(this.TOKEN_KEY)
+  }
+}
+
+// Service API
+class ApiService {
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`
+    const token = TokenManager.getToken()
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...options?.headers,
+        },
+        ...options,
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          TokenManager.removeToken()
+          throw new Error('Session expirée, veuillez vous reconnecter')
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error(`API Error for ${endpoint}:`, error)
+      throw error
+    }
+  }
+
+  // Authentification
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const response = await this.request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, motDePasse: password }),
+    })
+    
+    TokenManager.setToken(response.token)
+    return response
+  }
+
+  logout(): void {
+    TokenManager.removeToken()
+  }
+
+  isAuthenticated(): boolean {
+    return TokenManager.getToken() !== null
+  }
+
+  // Salons
+  async getSalons(): Promise<Salon[]> {
+    return this.request<Salon[]>('/salons')
+  }
+
+  async getSalon(id: string): Promise<Salon> {
+    return this.request<Salon>(`/salons/${id}`)
+  }
+
+  async createSalon(salon: Partial<Salon>): Promise<Salon> {
+    return this.request<Salon>('/salons', {
+      method: 'POST',
+      body: JSON.stringify(salon),
+    })
+  }
+
+  async updateSalon(id: string, salon: Partial<Salon>): Promise<Salon> {
+    return this.request<Salon>(`/salons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(salon),
+    })
+  }
+
+  async deleteSalon(id: string): Promise<void> {
+    return this.request<void>(`/salons/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Users
+  async getUsers(): Promise<User[]> {
+    return this.request<User[]>('/users/list')
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    return this.request<void>(`/users/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Rendez-vous
+  async getRendezVous(): Promise<RendezVous[]> {
+    return this.request<RendezVous[]>('/users/rdv')
+  }
+
+  async deleteRendezVous(id: string): Promise<void> {
+    return this.request<void>(`/rendezvous/${id}`, {
+      method: 'DELETE',
+    })
+  }
+}
+
+export const apiService = new ApiService()
