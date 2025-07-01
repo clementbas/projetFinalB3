@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/roleMiddleware");
 const Salon = require("../models/Salon");
+const User = require("../models/User");
 
 // 📥 Créer un salon — seulement admin ou coiffeur
 router.post(
@@ -17,10 +18,42 @@ router.post(
       categorie,
       description,
       prixMinimum,
-      horaires
+      horaires,
+      owner
     } = req.body;
 
     try {
+      let ownerId = req.user.id;
+
+      if (req.user.role === "admin" && owner) {
+        // Admin a fourni un owner
+        const { nom, prenom, email } = owner;
+
+        if (!nom || !prenom || !email) {
+          return res.status(400).json({ message: "Nom, prénom et email du owner sont requis." });
+        }
+
+        // Vérifie si l'utilisateur existe
+        let user = await User.findOne({ email });
+
+        if (!user) {
+          // Génère un mot de passe temporaire (ou laisse vide si tu utilises un système d’invitation)
+          const randomPassword = Math.random().toString(36).slice(-8);
+
+          user = new User({
+            nom,
+            prenom,
+            email,
+            password: randomPassword,
+            role: "coiffeur"
+          });
+
+          await user.save();
+        }
+
+        ownerId = user._id;
+      }
+
       const salon = new Salon({
         name,
         address,
@@ -29,7 +62,7 @@ router.post(
         description,
         prixMinimum,
         horaires,
-        owner: req.user.id,
+        owner: ownerId,
       });
 
       await salon.save();
@@ -39,7 +72,6 @@ router.post(
     }
   }
 );
-
 
 // 🔄 Modifier un salon
 router.put('/:id', authMiddleware, async (req, res) => {
@@ -52,7 +84,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Salon non trouvé' });
     }
 
-    // Vérifie si l'utilisateur est le créateur ou un admin
     const isOwner = salon.owner.toString() === user.id;
     const isAdmin = user.role === 'admin';
 
@@ -60,7 +91,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Accès interdit : non autorisé à modifier ce salon' });
     }
 
-    // ✅ Champs modifiables
     const {
       name,
       address,
@@ -86,7 +116,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-
 // 🗑️ Supprimer un salon
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
@@ -109,7 +138,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-
 // 📋 Voir tous les salons — uniquement connecté
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -119,7 +147,6 @@ router.get("/", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
-
 
 // 🔍 Voir un salon par ID - uniquement connecté
 router.get("/:id", authMiddleware, async (req, res) => {
@@ -139,7 +166,6 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const { note, commentaire } = req.body;
 
-    // Vérifications côté serveur
     if (!note || !commentaire) {
       return res.status(400).json({ message: "Note et commentaire sont obligatoires." });
     }
@@ -153,7 +179,6 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Salon non trouvé." });
     }
 
-    // Vérifie si l'utilisateur a déjà commenté
     const dejaCommente = salon.commentaires.some(c => c.utilisateur.toString() === userId);
     if (dejaCommente) {
       return res.status(400).json({ message: "Vous avez déjà laissé un commentaire pour ce salon." });
@@ -173,6 +198,5 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 });
-
 
 module.exports = router;
