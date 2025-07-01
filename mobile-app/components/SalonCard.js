@@ -6,17 +6,38 @@ import { useNavigation } from '@react-navigation/native';
 const SalonCard = ({ salon }) => {
   const navigation = useNavigation();
 
-  // 🔥 Valeurs par défaut sécurisées
+  // 🔥 Adaptation aux données du modèle MongoDB
   const salonData = {
-    id: salon?.id || salon?._id || 'unknown',
-    name: salon?.name || salon?.nom || 'Salon sans nom',
-    rating: salon?.rating || salon?.note || 0,
-    numReviews: salon?.numReviews || salon?.nombreAvis || 0,
-    address: salon?.address || salon?.adresse || 'Adresse non disponible',
-    minPrice: salon?.minPrice || salon?.prixMin || 0,
+    id: salon?._id || salon?.id || 'unknown',
+    name: salon?.name || 'Salon sans nom',
+    address: salon?.address || 'Adresse non disponible',
+    ville: salon?.ville || '',
+    categorie: salon?.categorie || 'mixte',
+    description: salon?.description || '',
+    prixMinimum: salon?.prixMinimum || 0,
+    // Calculer la note moyenne à partir des commentaires
+    rating: salon?.commentaires?.length > 0 
+      ? salon.commentaires.reduce((sum, comment) => sum + comment.note, 0) / salon.commentaires.length 
+      : 0,
+    numReviews: salon?.commentaires?.length || 0,
+    // Image par défaut selon la catégorie
+    imageUrl: salon?.imageUrl || getDefaultImage(salon?.categorie),
+    // Distance fictive pour l'exemple (à remplacer par calcul réel)
     distance: salon?.distance || null,
-    imageUrl: salon?.imageUrl || salon?.image || null,
   };
+
+  // Fonction pour obtenir une image par défaut selon la catégorie
+  function getDefaultImage(categorie) {
+    switch(categorie) {
+      case 'homme':
+        return 'https://via.placeholder.com/150x120/4A90E2/FFFFFF?text=Salon+Homme';
+      case 'femme':
+        return 'https://via.placeholder.com/150x120/E24A90/FFFFFF?text=Salon+Femme';
+      case 'mixte':
+      default:
+        return 'https://via.placeholder.com/150x120/FF6B6B/FFFFFF?text=Salon+Mixte';
+    }
+  }
 
   const renderStars = (rating) => {
     const stars = [];
@@ -36,37 +57,68 @@ const SalonCard = ({ salon }) => {
     return stars;
   };
 
+  const getCategorieIcon = (categorie) => {
+    switch(categorie) {
+      case 'homme': return 'man';
+      case 'femme': return 'woman';
+      case 'mixte': return 'people';
+      default: return 'storefront';
+    }
+  };
+
+  const getCategorieColor = (categorie) => {
+    switch(categorie) {
+      case 'homme': return '#4A90E2';
+      case 'femme': return '#E24A90';
+      case 'mixte': return '#FF6B6B';
+      default: return '#666';
+    }
+  };
+
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('SalonDetails', { salonId: salonData.id })}
     >
       <Image
-        source={{ 
-          uri: salonData.imageUrl || 'https://via.placeholder.com/150x120/FF6B6B/FFFFFF?text=Salon' 
-        }}
+        source={{ uri: salonData.imageUrl }}
         style={styles.image}
       />
       <View style={styles.infoContainer}>
-        <Text style={styles.name} numberOfLines={2}>{salonData.name}</Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.name} numberOfLines={2}>{salonData.name}</Text>
+          <View style={styles.categorieContainer}>
+            <Ionicons 
+              name={getCategorieIcon(salonData.categorie)} 
+              size={16} 
+              color={getCategorieColor(salonData.categorie)} 
+            />
+            <Text style={[styles.categorieText, { color: getCategorieColor(salonData.categorie) }]}>
+              {salonData.categorie}
+            </Text>
+          </View>
+        </View>
         
         <View style={styles.ratingContainer}>
           <View style={styles.stars}>{renderStars(salonData.rating)}</View>
           <Text style={styles.ratingText}>
-            ({salonData.numReviews > 0 ? salonData.numReviews : 'Nouveau'})
+            {salonData.rating > 0 ? `${salonData.rating.toFixed(1)}` : 'Nouveau'}
+          </Text>
+          <Text style={styles.reviewsText}>
+            ({salonData.numReviews} avis)
           </Text>
         </View>
         
         <View style={styles.locationContainer}>
           <Ionicons name="location" size={16} color="#666" />
           <Text style={styles.locationText} numberOfLines={1}>
-            {salonData.address}
+            {salonData.address}{salonData.ville ? `, ${salonData.ville}` : ''}
           </Text>
         </View>
         
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>À partir de </Text>
-          <Text style={styles.price}>{salonData.minPrice}€</Text>
+          <Text style={styles.price}>{salonData.prixMinimum}€</Text>
         </View>
         
         {salonData.distance && (
@@ -103,11 +155,32 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
   name: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
     color: '#333',
+    flex: 1,
+    marginRight: 8,
+  },
+  categorieContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  categorieText: {
+    marginLeft: 2,
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -119,6 +192,12 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     marginLeft: 4,
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
+  },
+  reviewsText: {
+    marginLeft: 2,
     fontSize: 12,
     color: '#666',
   },
