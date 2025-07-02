@@ -6,7 +6,7 @@ const getBaseURL = () => {
   // En développement avec Expo Go, utilise l'IP de ton Mac
   if (__DEV__) {
     // REMPLACE cette IP par celle de ton Mac !
-    const MAC_IP = '10.31.39.78'; // <- CHANGE MOI !
+    const MAC_IP = '192.168.1.112'; // <- CHANGE MOI !
     return `http://${MAC_IP}:5002/api`;
   }
   
