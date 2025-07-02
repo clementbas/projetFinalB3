@@ -41,7 +41,7 @@ export default function SalonsPage() {
   })
 
   // Calcul sécurisé de la note moyenne
-  const getAverageRating = (commentaires: any[]) => {
+  const getAverageRating = (commentaires: Array<{ note: number }>) => {
     if (!commentaires || commentaires.length === 0) return "N/A"
     const sum = commentaires.reduce((acc, comment) => acc + (comment.note || 0), 0)
     return (sum / commentaires.length).toFixed(1)

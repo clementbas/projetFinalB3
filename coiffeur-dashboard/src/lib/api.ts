@@ -149,7 +149,7 @@ class ApiService {
           const errorData = await response.json()
           console.log("❌ Erreur serveur:", errorData)
           errorMessage = errorData.message || errorData.error || errorMessage
-        } catch (e) {
+        } catch {
           console.log("❌ Impossible de parser l'erreur JSON")
         }
 

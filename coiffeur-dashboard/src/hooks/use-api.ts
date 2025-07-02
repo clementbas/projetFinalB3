@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { apiService, Salon, User, RendezVous } from '@/lib/api'
+"use client"
+
+import { useState, useEffect } from "react"
+import { apiService, type Salon, type User, type RendezVous } from "@/lib/api"
 
 export function useSalons() {
   const [salons, setSalons] = useState<Salon[]>([])
@@ -7,13 +9,13 @@ export function useSalons() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchSalons = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
       const data = await apiService.getSalons()
       setSalons(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des salons')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors du chargement des salons")
     } finally {
       setLoading(false)
     }
@@ -32,13 +34,13 @@ export function useUsers() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchUsers = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
       const data = await apiService.getUsers()
       setUsers(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des utilisateurs')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors du chargement des utilisateurs")
     } finally {
       setLoading(false)
     }
@@ -57,13 +59,13 @@ export function useRendezVous() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchRendezVous = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
       const data = await apiService.getRendezVous()
       setRendezVous(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des rendez-vous')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors du chargement des rendez-vous")
     } finally {
       setLoading(false)
     }

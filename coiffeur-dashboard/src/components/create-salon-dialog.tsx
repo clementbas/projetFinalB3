@@ -51,9 +51,7 @@ export function CreateSalonDialog({ isOpen, onClose, onSalonCreated }: CreateSal
     setIsLoading(true)
 
     try {
-
-      const result = await apiService.createSalon(formData)
-
+      await apiService.createSalon(formData)
       toast.success("Salon créé avec succès !")
       onClose()
       onSalonCreated()
@@ -74,7 +72,6 @@ export function CreateSalonDialog({ isOpen, onClose, onSalonCreated }: CreateSal
         },
       })
     } catch (error) {
-      console.error("Erreur complète:", error)
       toast.error(error instanceof Error ? error.message : "Erreur lors de la création")
     } finally {
       setIsLoading(false)
@@ -243,7 +240,7 @@ export function CreateSalonDialog({ isOpen, onClose, onSalonCreated }: CreateSal
 
           {/* Horaires */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Horaires d'ouverture</h3>
+            <h3 className="text-lg font-medium">Horaires d&apos;ouverture</h3>
 
             <div className="space-y-3">
               {formData.horaires.map((horaire, index) => (
