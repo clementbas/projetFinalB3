@@ -9,38 +9,34 @@ import { Badge } from "@/components/ui/badge"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
-import { Plus, Search, Edit, Trash2, MapPin, Star } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Search, Edit, Trash2, MapPin, Star } from "lucide-react"
 import { useSalons } from "@/hooks/use-api"
 import { LoadingTable } from "@/components/loading-spinner"
-import { toast } from "sonner"
+import { CreateSalonDialog } from "@/components/create-salon-dialog"
+import { EditSalonDialog } from "@/components/edit-salon-dialog"
+import { DeleteSalonDialog } from "@/components/delete-salon-dialog"
+import { SalonHorairesDropdown } from "@/components/salon-horaires-dropdown"
 
 export default function SalonsPage() {
   const { salons, loading, error, refetch } = useSalons()
   const [searchTerm, setSearchTerm] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null)
+  const [selectedSalonForDelete, setSelectedSalonForDelete] = useState<{ _id: string; name: string } | null>(null)
 
   // Filtre sécurisé pour la recherche
   const filteredSalons = salons.filter((salon) => {
-    const name = salon.name || ''
-    const ville = salon.ville || ''
-    const description = salon.description || ''
-    
+    const name = salon.name || ""
+    const ville = salon.ville || ""
+    const description = salon.description || ""
+
     const matchesSearch =
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ville.toLowerCase().includes(searchTerm.toLowerCase()) ||
       description.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     return matchesSearch
   })
 
@@ -63,6 +59,26 @@ export default function SalonsPage() {
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const handleEditSalon = (salonId: string) => {
+    setSelectedSalonId(salonId)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDeleteSalon = (salon: { _id: string; name: string }) => {
+    setSelectedSalonForDelete(salon)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false)
+    setSelectedSalonId(null)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    setIsDeleteDialogOpen(false)
+    setSelectedSalonForDelete(null)
   }
 
   // Gestion des erreurs
@@ -113,69 +129,12 @@ export default function SalonsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Gestion des Salons</CardTitle>
-                <CardDescription>
-                  {loading ? "Chargement..." : `${salons.length} salon(s) trouvé(s)`}
-                </CardDescription>
+                <CardDescription>{loading ? "Chargement..." : `${salons.length} salon(s) trouvé(s)`}</CardDescription>
               </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nouveau Salon
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Créer un nouveau salon</DialogTitle>
-                    <DialogDescription>Ajoutez un nouveau salon de coiffure à la plateforme</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nom du salon</Label>
-                        <Input id="name" placeholder="Nom du salon" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="ville">Ville</Label>
-                        <Input id="ville" placeholder="Ville" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Adresse</Label>
-                      <Input id="address" placeholder="Adresse complète" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="categorie">Catégorie</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une catégorie" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="homme">Homme</SelectItem>
-                            <SelectItem value="femme">Femme</SelectItem>
-                            <SelectItem value="mixte">Mixte</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="prix">Prix minimum (€)</Label>
-                        <Input id="prix" type="number" placeholder="25" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea id="description" placeholder="Description du salon" />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Annuler
-                    </Button>
-                    <Button onClick={() => setIsDialogOpen(false)}>Créer le salon</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau Salon
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -203,13 +162,14 @@ export default function SalonsPage() {
                     <TableHead>Prix min.</TableHead>
                     <TableHead>Propriétaire</TableHead>
                     <TableHead>Note</TableHead>
+                    <TableHead>Horaires</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSalons.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         {searchTerm ? "Aucun salon trouvé pour cette recherche" : "Aucun salon disponible"}
                       </TableCell>
                     </TableRow>
@@ -218,55 +178,49 @@ export default function SalonsPage() {
                       <TableRow key={salon._id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{salon.name || 'Nom non défini'}</div>
+                            <div className="font-medium">{salon.name || "Nom non défini"}</div>
                             <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                              {salon.description || 'Aucune description'}
+                              {salon.description || "Aucune description"}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm">{salon.ville || 'Ville non définie'}</span>
+                            <span className="text-sm">{salon.ville || "Ville non définie"}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {salon.address || 'Adresse non définie'}
-                          </div>
+                          <div className="text-xs text-muted-foreground">{salon.address || "Adresse non définie"}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getCategorieColor(salon.categorie || 'mixte')}>
-                            {salon.categorie || 'mixte'}
+                          <Badge className={getCategorieColor(salon.categorie || "mixte")}>
+                            {salon.categorie || "mixte"}
                           </Badge>
                         </TableCell>
                         <TableCell>{salon.prixMinimum || 0}€</TableCell>
                         <TableCell>
-                          <div className="text-sm">{salon.owner?.email || 'Email non défini'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {salon.owner?.role || 'Rôle non défini'}
-                          </div>
+                          <div className="text-sm">{salon.owner?.email || "Email non défini"}</div>
+                          <div className="text-xs text-muted-foreground">{salon.owner?.role || "Rôle non défini"}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                             <span className="text-sm">{getAverageRating(salon.commentaires)}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({salon.commentaires?.length || 0})
-                            </span>
+                            <span className="text-xs text-muted-foreground">({salon.commentaires?.length || 0})</span>
                           </div>
                         </TableCell>
                         <TableCell>
+                          <SalonHorairesDropdown horaires={salon.horaires || []} />
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => toast.info('Fonction de modification à implémenter')}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEditSalon(salon._id)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
-                              onClick={() => toast.info('Fonction de suppression à implémenter')}
+                              onClick={() => handleDeleteSalon({ _id: salon._id, name: salon.name })}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -281,6 +235,27 @@ export default function SalonsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <CreateSalonDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSalonCreated={refetch}
+      />
+
+      <EditSalonDialog
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        onSalonUpdated={refetch}
+        salonId={selectedSalonId}
+      />
+
+      <DeleteSalonDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        onSalonDeleted={refetch}
+        salon={selectedSalonForDelete}
+      />
     </SidebarInset>
   )
 }

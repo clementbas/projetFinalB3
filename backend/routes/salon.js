@@ -3,12 +3,13 @@ const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/roleMiddleware");
 const Salon = require("../models/Salon");
+const User = require("../models/User");
 
 // 📥 Créer un salon — seulement admin ou coiffeur
 router.post(
   "/",
   authMiddleware,
-  authorizeRoles("admin", "coiffeur"),
+  authorizeRoles("admin"),
   async (req, res) => {
     const {
       name,
@@ -17,10 +18,31 @@ router.post(
       categorie,
       description,
       prixMinimum,
-      horaires
+      horaires,
+      owner
     } = req.body;
 
     try {
+      let ownerId = req.user.id;
+
+      if (req.user.role === "admin" && owner) {
+        // Admin a fourni un owner
+        const { nom, prenom, email } = owner;
+
+        if (!nom || !prenom || !email) {
+          return res.status(400).json({ message: "Nom, prénom et email du owner sont requis." });
+        }
+
+        // Vérifie si l'utilisateur existe
+        let user = await User.findOne({ email });
+
+        if (!user) {
+          return res.status(404).json({ message: "Le coiffeur spécifié n'existe pas." });
+        }
+
+        ownerId = user._id;
+      }
+
       const salon = new Salon({
         name,
         address,
@@ -29,7 +51,7 @@ router.post(
         description,
         prixMinimum,
         horaires,
-        owner: req.user.id,
+        owner: ownerId,
       });
 
       await salon.save();
@@ -39,7 +61,6 @@ router.post(
     }
   }
 );
-
 
 // 🔄 Modifier un salon
 router.put('/:id', authMiddleware, async (req, res) => {
@@ -52,15 +73,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Salon non trouvé' });
     }
 
-    // Vérifie si l'utilisateur est le créateur ou un admin
-    const isOwner = salon.owner.toString() === user.id;
     const isAdmin = user.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Accès interdit : non autorisé à modifier ce salon' });
     }
 
-    // ✅ Champs modifiables
     const {
       name,
       address,
@@ -68,9 +86,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
       description,
       categorie,
       prixMinimum,
-      horaires
+      horaires,
+      owner
     } = req.body;
 
+    // ✅ Mise à jour des champs classiques
     if (name !== undefined) salon.name = name;
     if (address !== undefined) salon.address = address;
     if (ville !== undefined) salon.ville = ville;
@@ -79,13 +99,33 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (prixMinimum !== undefined) salon.prixMinimum = prixMinimum;
     if (horaires !== undefined) salon.horaires = horaires;
 
+    // ✅ Si admin et owner fourni : vérifie qu'il existe et est coiffeur
+    if (owner && isAdmin) {
+      const { email } = owner;
+
+      if (!email) {
+        return res.status(400).json({ message: "L'email du propriétaire est requis." });
+      }
+
+      const ownerUser = await User.findOne({ email });
+
+      if (!ownerUser) {
+        return res.status(404).json({ message: "Utilisateur owner non trouvé." });
+      }
+
+      if (ownerUser.role !== 'coiffeur') {
+        return res.status(400).json({ message: "Le propriétaire doit être un utilisateur avec le rôle 'coiffeur'." });
+      }
+
+      salon.owner = ownerUser._id;
+    }
+
     await salon.save();
     res.status(200).json({ message: 'Salon mis à jour avec succès', salon });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
 });
-
 
 // 🗑️ Supprimer un salon
 router.delete('/:id', authMiddleware, async (req, res) => {
@@ -95,10 +135,9 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Salon non trouvé' });
     }
 
-    const isOwner = salon.owner.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Accès interdit : vous ne pouvez pas supprimer ce salon' });
     }
 
@@ -109,7 +148,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-
 // 📋 Voir tous les salons — uniquement connecté
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -119,7 +157,6 @@ router.get("/", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
-
 
 // 🔍 Voir un salon par ID - uniquement connecté
 router.get("/:id", authMiddleware, async (req, res) => {
@@ -139,7 +176,6 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const { note, commentaire } = req.body;
 
-    // Vérifications côté serveur
     if (!note || !commentaire) {
       return res.status(400).json({ message: "Note et commentaire sont obligatoires." });
     }
@@ -153,7 +189,6 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Salon non trouvé." });
     }
 
-    // Vérifie si l'utilisateur a déjà commenté
     const dejaCommente = salon.commentaires.some(c => c.utilisateur.toString() === userId);
     if (dejaCommente) {
       return res.status(400).json({ message: "Vous avez déjà laissé un commentaire pour ce salon." });
@@ -173,6 +208,5 @@ router.post('/:id/commentaire', authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 });
-
 
 module.exports = router;
