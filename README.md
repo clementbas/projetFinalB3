@@ -1,6 +1,13 @@
 # projetFinalB3
 
 
+L'API et le dashboard on été déployés sur les liens suivants :
+
+```bash
+https://projet-final-b3.vercel.app/
+https://dashboard-bice-tau.vercel.app/
+```
+
 
 ## API (backend)
 
@@ -30,4 +37,8 @@ npm install react-native-screens react-native-safe-area-context
 npm install react-native-maps axios @react-native-async-storage/async-storage 
 
 npm install expo
+
+npm install
+
+npx expo start
 ```
