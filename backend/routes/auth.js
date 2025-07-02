@@ -6,20 +6,20 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 // Register
 router.post('/register', async (req, res) => {
-  const { nom, email, motDePasse } = req.body;
+  const { nom, prenom, email, motDePasse } = req.body;
 
   try {
     const userExist = await User.findOne({ email });
     if (userExist) return res.status(400).json({ message: 'Email déjà utilisé' });
 
-    const newUser = new User({ nom, email, motDePasse });
+    const newUser = new User({ nom, prenom, email, motDePasse });
     await newUser.save();
 
     const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     });
 
-    res.status(201).json({ token, user: { id: newUser._id, nom: newUser.nom, role: newUser.role } });
+    res.status(201).json({ token, user: { id: newUser._id, nom: newUser.nom, prenom: newUser.prenom, role: newUser.role } });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
       expiresIn: '7d',
     });
 
-    res.status(200).json({ token, user: { id: user._id, nom: user.nom, role: user.role } });
+    res.status(200).json({ token, user: { id: user._id, nom: user.nom, prenom: user.prenom, email: user.email, role: user.role } });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
