@@ -157,8 +157,76 @@ export const salonService = {
     }
   },
 };
+// Service pour gérer les rendez-vous (routes protégées, token nécessaire)
+export const rendezVousService = {
+  getAllRendezVous: async () => {
+    try {
+      const token = await getToken();
+      const response = await api.get('/rendezvous', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  getRendezVousById: async (id) => {
+    try {
+      const token = await getToken();
+      const response = await api.get(`/rendezvous/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  createRendezVous: async (salonId, rendezVousData) => {
+    try {
+      const token = await getToken();
+      const response = await api.post(`/rendezvous/${salonId}`, rendezVousData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur brute dans createRendezVous:', error);
+      throw new Error(getErrorMessage(error));
+    }
+  },
+  
+  
+  
+
+  updateRendezVous: async (id, rendezVousData) => {
+    try {
+      const token = await getToken();
+      const response = await api.put(`/rendezvous/${id}`, rendezVousData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  deleteRendezVous: async (id) => {
+    try {
+      const token = await getToken();
+      const response = await api.delete(`/rendezvous/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }
+};
+
 
 export default {
   auth: authService,
   salons: salonService,
+  rendezvous: rendezVousService,
 };

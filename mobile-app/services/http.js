@@ -5,13 +5,12 @@ import Constants from 'expo-constants';
 const getBaseURL = () => {
   // En développement avec Expo Go, utilise l'IP de ton Mac
   if (__DEV__) {
-    // REMPLACE cette IP par celle de ton Mac !
-    const MAC_IP = '10.31.39.78'; // <- CHANGE MOI !
-    return `http://${MAC_IP}:5002/api`;
+ // <- CHANGE MOI !
+    return `https://projet-final-b3.vercel.app/api`;
   }
   
   // En production, utilise ton API déployée
-  return 'https://ton-api-deployee.com/api';
+  return 'https://projet-final-b3.vercel.app/api';
 };
 
 const BASE_URL = getBaseURL();

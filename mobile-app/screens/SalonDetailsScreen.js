@@ -8,26 +8,32 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Platform,
+  Button,
   Modal,
   TextInput
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import salonService from '../services/salonService';
+import { salonService, rendezVousService } from '../services/api';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SalonDetails = ({ route, navigation }) => {
   const { salonId } = route.params;
   const [salon, setSalon] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [newRating, setNewRating] = useState(5);
+  const [date, setDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchSalonDetails();
   }, [salonId]);
 
   const fetchSalonDetails = async () => {
+    setLoading(true);
     try {
       const data = await salonService.getSalonById(salonId);
       setSalon(data);
@@ -38,7 +44,7 @@ const SalonDetails = ({ route, navigation }) => {
       setLoading(false);
     }
   };
-
+  
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       Alert.alert('Erreur', 'Veuillez saisir un commentaire');
@@ -50,7 +56,7 @@ const SalonDetails = ({ route, navigation }) => {
       setCommentModalVisible(false);
       setNewComment('');
       setNewRating(5);
-      fetchSalonDetails(); // Recharger les données
+      fetchSalonDetails();
       Alert.alert('Succès', 'Votre avis a été ajouté !');
     } catch (error) {
       console.error('Erreur ajout commentaire', error);
@@ -58,6 +64,36 @@ const SalonDetails = ({ route, navigation }) => {
     }
   };
 
+  const onChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+  
+  const handlePrendreRendezVous = async () => {
+    if (date < new Date()) {
+      Alert.alert('Erreur', 'Veuillez choisir une date et heure future.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await rendezVousService.createRendezVous({
+        salonId: salon.id,
+        date: date.toISOString()
+      });
+      console.log('Réponse rendez-vous:', response);
+      Alert.alert('Succès', 'Rendez-vous pris avec succès !');
+    } catch (error) {
+      console.log('Erreur brute dans createRendezVous:', error);
+      Alert.alert('Erreur', 'Impossible de prendre rendez-vous');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const renderStars = (rating, size = 16, onPress = null) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -228,7 +264,6 @@ const SalonDetails = ({ route, navigation }) => {
               <Text style={styles.addCommentText}>Laisser un avis</Text>
             </TouchableOpacity>
           </View>
-
           {salon.commentaires && salon.commentaires.length > 0 ? (
             salon.commentaires.map((comment, index) => (
               <View key={index} style={styles.commentCard}>
@@ -251,8 +286,25 @@ const SalonDetails = ({ route, navigation }) => {
             </View>
           )}
         </View>
-      </ScrollView>
+        <View>
+            <Button title="Choisir date et heure" onPress={() => setShowPicker(true)} />
+            {showPicker && (
+              <DateTimePicker
+                value={date}
+                mode="datetime"
+                display="default"
+                onChange={onChange}
+                minimumDate={new Date()}  // interdit de choisir une date passée
+              />
+            )}
 
+            <Button
+              title={loading ? "Chargement..." : "Prendre un rendez-vous"}
+              onPress={handlePrendreRendezVous}
+              disabled={loading}
+            />
+        </View>
+      </ScrollView>
       {/* Modal pour ajouter un commentaire */}
       <Modal
         animationType="slide"
