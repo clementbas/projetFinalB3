@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
       expiresIn: '7d',
     });
 
-    res.status(200).json({ token, user: { id: user._id, nom: user.nom, prenom: user.prenom, role: user.role } });
+    res.status(200).json({ token, user: { id: user._id, nom: user.nom, prenom: user.prenom, email: user.email, role: user.role } });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur' });
   }

@@ -10,30 +10,41 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
 import AppointmentCard from '../components/AppointmentCard';
 
 const ProfileScreen = ({ navigation }) => {
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-  });
-
+  const [user, setUser] = useState(null);
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [pastAppointments, setPastAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    loadProfile();
     loadAppointments();
   }, []);
+
+  const loadProfile = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      console.log('storedUserData:', storedUserData);  // Pour voir ce qu'on récupère
+      if (storedUserData) {
+        const parsedUser = JSON.parse(storedUserData);
+        console.log('parsedUser:', parsedUser);        // Pour vérifier le contenu
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.log('Erreur lors du chargement du profil :', error);
+    }
+  };
+  
 
   const loadAppointments = () => {
     setIsLoading(true);
 
-    // Ici, tu peux appeler ton API ou charger les données réelles
-
-    // Exemple : on simule juste un chargement vide
+    // À remplacer avec ton appel API réel plus tard
     setTimeout(() => {
       setUpcomingAppointments([]);
       setPastAppointments([]);
@@ -43,10 +54,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise((resolve) => {
-      loadAppointments();
-      resolve();
-    });
+    await Promise.all([loadProfile(), loadAppointments()]);
     setRefreshing(false);
   };
 
@@ -60,8 +68,12 @@ const ProfileScreen = ({ navigation }) => {
 
       <View style={styles.profileContainer}>
         <Ionicons name="person-circle" size={80} color="#FF6B6B" />
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <Text style={styles.name}>
+          {user ? user.nom || user.name : 'Chargement...'}
+        </Text>
+        <Text style={styles.email}>
+          {user ? user.email || 'email non trouvé' : ''}
+        </Text>
       </View>
 
       {isLoading ? (
