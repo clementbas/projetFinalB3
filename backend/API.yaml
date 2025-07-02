@@ -1,0 +1,416 @@
+openapi: 3.0.0
+info:
+  title: Salon Management API
+  version: 1.0.0
+  description: API documentation for managing salons, appointments, and users.
+paths:
+  /salon:
+    post:
+      summary: Create a salon
+      description: Create a new salon. Only accessible by admin or coiffeur.
+      tags:
+        - Salon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                ville:
+                  type: string
+                categorie:
+                  type: string
+                description:
+                  type: string
+                prixMinimum:
+                  type: number
+                horaires:
+                  type: string
+                owner:
+                  type: object
+                  properties:
+                    nom:
+                      type: string
+                    prenom:
+                      type: string
+                    email:
+                      type: string
+      responses:
+        201:
+          description: Salon created successfully.
+        400:
+          description: Bad request.
+        500:
+          description: Server error.
+    get:
+      summary: Get all salons
+      description: Retrieve a list of all salons. Only accessible by authenticated users.
+      tags:
+        - Salon
+      responses:
+        200:
+          description: List of salons.
+        500:
+          description: Server error.
+  /salon/{id}:
+    put:
+      summary: Update a salon
+      description: Update salon details. Only accessible by admin.
+      tags:
+        - Salon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                ville:
+                  type: string
+                description:
+                  type: string
+                categorie:
+                  type: string
+                prixMinimum:
+                  type: number
+                horaires:
+                  type: string
+                owner:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+      responses:
+        200:
+          description: Salon updated successfully.
+        403:
+          description: Forbidden.
+        404:
+          description: Salon not found.
+        500:
+          description: Server error.
+    delete:
+      summary: Delete a salon
+      description: Delete a salon. Only accessible by admin.
+      tags:
+        - Salon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Salon deleted successfully.
+        403:
+          description: Forbidden.
+        404:
+          description: Salon not found.
+        500:
+          description: Server error.
+    get:
+      summary: Get salon by ID
+      description: Retrieve details of a specific salon by ID. Only accessible by authenticated users.
+      tags:
+        - Salon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Salon details.
+        404:
+          description: Salon not found.
+        500:
+          description: Server error.
+  /salon/{id}/commentaire:
+    post:
+      summary: Add a comment to a salon
+      description: Add a comment and rating to a salon. Only accessible by authenticated users.
+      tags:
+        - Salon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                commentaire:
+                  type: string
+      responses:
+        201:
+          description: Comment added successfully.
+        400:
+          description: Bad request.
+        404:
+          description: Salon not found.
+        500:
+          description: Server error.
+  /rendezvous/{salonId}:
+    post:
+      summary: Book an appointment
+      description: Book a new appointment for a salon. Only accessible by authenticated users.
+      tags:
+        - RendezVous
+      parameters:
+        - name: salonId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date-time
+                commentaire:
+                  type: string
+      responses:
+        201:
+          description: Appointment booked successfully.
+        400:
+          description: Bad request.
+        404:
+          description: Salon not found.
+        409:
+          description: Time slot already reserved.
+        500:
+          description: Server error.
+  /rendezvous/salon/{salonId}:
+    get:
+      summary: Get appointments for a salon
+      description: Retrieve all appointments for a specific salon. Only accessible by admin or salon owner.
+      tags:
+        - RendezVous
+      parameters:
+        - name: salonId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of appointments.
+        403:
+          description: Forbidden.
+        404:
+          description: Salon not found.
+        500:
+          description: Server error.
+  /rendezvous/mes:
+    get:
+      summary: Get user's appointments
+      description: Retrieve all appointments for the authenticated user.
+      tags:
+        - RendezVous
+      responses:
+        200:
+          description: List of user's appointments.
+        500:
+          description: Server error.
+  /rendezvous/{id}:
+    delete:
+      summary: Cancel an appointment
+      description: Cancel an appointment. Only accessible by admin, salon owner, or the client.
+      tags:
+        - RendezVous
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Appointment canceled successfully.
+        403:
+          description: Forbidden.
+        404:
+          description: Appointment not found.
+        500:
+          description: Server error.
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Create a new user account.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nom:
+                  type: string
+                prenom:
+                  type: string
+                email:
+                  type: string
+                motDePasse:
+                  type: string
+      responses:
+        201:
+          description: User registered successfully.
+        400:
+          description: Email already in use.
+        500:
+          description: Server error.
+  /auth/login:
+    post:
+      summary: Login a user
+      description: Authenticate a user and return a token.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                motDePasse:
+                  type: string
+      responses:
+        200:
+          description: User logged in successfully.
+        400:
+          description: Invalid email or password.
+        500:
+          description: Server error.
+  /auth/me:
+    get:
+      summary: Get authenticated user details
+      description: Retrieve details of the currently authenticated user.
+      tags:
+        - Auth
+      responses:
+        200:
+          description: Authenticated user details.
+        500:
+          description: Server error.
+  /admin/{id}/role:
+    put:
+      summary: Update user role
+      description: Update the role of a user. Only accessible by admin.
+      tags:
+        - Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [user, coiffeur, admin]
+      responses:
+        200:
+          description: User role updated successfully.
+        400:
+          description: Invalid role.
+        403:
+          description: Forbidden.
+        404:
+          description: User not found.
+        500:
+          description: Server error.
+  /admin/list:
+    get:
+      summary: Get all users
+      description: Retrieve a list of all users. Only accessible by admin.
+      tags:
+        - Admin
+      responses:
+        200:
+          description: List of users.
+        403:
+          description: Forbidden.
+        500:
+          description: Server error.
+  /admin/{id}:
+    get:
+      summary: Get user by ID
+      description: Retrieve details of a specific user by ID. Only accessible by admin.
+      tags:
+        - Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: User details.
+        403:
+          description: Forbidden.
+        404:
+          description: User not found.
+        500:
+          description: Server error.
+    delete:
+      summary: Delete a user
+      description: Delete a user account. Only accessible by admin.
+      tags:
+        - Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: User deleted successfully.
+        403:
+          description: Forbidden.
+        404:
+          description: User not found.
+        500:
+          description: Server error.
