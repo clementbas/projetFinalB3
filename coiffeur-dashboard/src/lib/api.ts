@@ -57,8 +57,26 @@ export interface User {
   nom: string
   prenom: string
   email: string
-  role: string
+  role: "user" | "coiffeur" | "admin"
   __v: number
+}
+
+// Type pour la création d'un utilisateur
+export interface CreateUserData {
+  nom: string
+  prenom: string
+  email: string
+  motDePasse: string
+  role: "user" | "coiffeur" | "admin"
+}
+
+// Type pour la modification d'un utilisateur
+export interface UpdateUserData {
+  nom?: string
+  prenom?: string
+  email?: string
+  role?: "user" | "coiffeur" | "admin"
+  motDePasse?: string
 }
 
 export interface RendezVous {
@@ -202,6 +220,24 @@ class ApiService {
   // Users
   async getUsers(): Promise<User[]> {
     return this.request<User[]>("/users/list")
+  }
+
+  async getUser(id: string): Promise<User> {
+    return this.request<User>(`/users/${id}`)
+  }
+
+  async createUser(userData: CreateUserData): Promise<User> {
+    return this.request<User>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    })
+  }
+
+  async updateUser(id: string, userData: UpdateUserData): Promise<User> {
+    return this.request<User>(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(userData),
+    })
   }
 
   async deleteUser(id: string): Promise<void> {

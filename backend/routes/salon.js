@@ -9,7 +9,7 @@ const User = require("../models/User");
 router.post(
   "/",
   authMiddleware,
-  authorizeRoles("admin", "coiffeur"),
+  authorizeRoles("admin"),
   async (req, res) => {
     const {
       name,
@@ -37,18 +37,7 @@ router.post(
         let user = await User.findOne({ email });
 
         if (!user) {
-          // Génère un mot de passe temporaire (ou laisse vide si tu utilises un système d’invitation)
-          const randomPassword = Math.random().toString(36).slice(-8);
-
-          user = new User({
-            nom,
-            prenom,
-            email,
-            password: randomPassword,
-            role: "coiffeur"
-          });
-
-          await user.save();
+          return res.status(404).json({ message: "Le coiffeur spécifié n'existe pas." });
         }
 
         ownerId = user._id;
@@ -84,10 +73,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Salon non trouvé' });
     }
 
-    const isOwner = salon.owner.toString() === user.id;
     const isAdmin = user.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Accès interdit : non autorisé à modifier ce salon' });
     }
 
@@ -147,10 +135,9 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Salon non trouvé' });
     }
 
-    const isOwner = salon.owner.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Accès interdit : vous ne pouvez pas supprimer ce salon' });
     }
 

@@ -70,26 +70,26 @@ router.get("/mes", authMiddleware, async (req, res) => {
   }
 });
 
-router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-    const rdv = await RendezVous.findById(req.params.id);
-    if (!rdv) return res.status(404).json({ message: "Rendez-vous non trouvé" });
+  router.delete("/:id", authMiddleware, async (req, res) => {
+    try {
+      const rdv = await RendezVous.findById(req.params.id);
+      if (!rdv) return res.status(404).json({ message: "Rendez-vous non trouvé" });
 
-    const salon = await Salon.findById(rdv.salon);
-    const isAdmin = req.user.role === "admin";
-    const isOwner = salon.owner.toString() === req.user.id;
-    const isClient = rdv.client.toString() === req.user.id;
+      const salon = await Salon.findById(rdv.salon);
+      const isAdmin = req.user.role === "admin";
+      const isOwner = salon.owner.toString() === req.user.id;
+      const isClient = rdv.client.toString() === req.user.id;
 
-    if (!isAdmin && !isOwner && !isClient) {
-      return res.status(403).json({ message: "Non autorisé à annuler ce rendez-vous" });
+      if (!isAdmin && !isOwner && !isClient) {
+        return res.status(403).json({ message: "Non autorisé à annuler ce rendez-vous" });
+      }
+
+      await rdv.deleteOne();
+      res.json({ message: "Rendez-vous annulé avec succès" });
+    } catch (err) {
+      res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
-
-    await rdv.deleteOne();
-    res.json({ message: "Rendez-vous annulé avec succès" });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-});
+  });
 
 
 module.exports = router;

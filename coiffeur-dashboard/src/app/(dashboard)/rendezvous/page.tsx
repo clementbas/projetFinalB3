@@ -14,11 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRendezVous } from "@/hooks/use-api"
 import { LoadingTable } from "@/components/loading-spinner"
 import { toast } from "sonner"
+import { DeleteRendezVousDialog } from "@/components/delete-rendezvous-dialog"
+import type { RendezVous } from "@/lib/api"
 
 export default function RendezVousPage() {
   const { rendezvous, loading, error, refetch } = useRendezVous()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedRendezVousForDelete, setSelectedRendezVousForDelete] = useState<RendezVous | null>(null)
 
   // Filtre sécurisé pour la recherche
   const filteredRdv = rendezvous.filter((rdv) => {
@@ -92,6 +96,16 @@ export default function RendezVousPage() {
     } catch {
       return "Heure invalide"
     }
+  }
+
+  const handleDeleteRendezVous = (rdv: RendezVous) => {
+    setSelectedRendezVousForDelete(rdv)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    setIsDeleteDialogOpen(false)
+    setSelectedRendezVousForDelete(null)
   }
 
   // Gestion des erreurs
@@ -246,10 +260,12 @@ export default function RendezVousPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {rdv.statut !== 'annulé' && (
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
-                                onClick={() => toast.info('Fonction d\'annulation à implémenter')}
+                                onClick={() => handleDeleteRendezVous(rdv)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Supprimer le rendez-vous"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -265,6 +281,12 @@ export default function RendezVousPage() {
           </CardContent>
         </Card>
       </div>
+      <DeleteRendezVousDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        onRendezVousDeleted={refetch}
+        rendezvous={selectedRendezVousForDelete}
+      />
     </SidebarInset>
   )
 }
